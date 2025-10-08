@@ -544,7 +544,7 @@ const canShortlist = () => {
   const formatCurrency = (amount, currency = 'LKR') => {
   if (!amount && amount !== 0) return "Not specified";
   
-  const symbol = currency === 'USD' ? '$' : '₨';
+  const symbol = currency === 'USD' ? '$' : 'RS. ';
   
   return `${symbol}${new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
