@@ -8,14 +8,16 @@ const AuctionHistory = () => {
   const [summary, setSummary] = useState(null);
 
   // Format currency
-  const formatCurrency = (amount) => {
-    if (!amount) return 'N/A';
-    return new Intl.NumberFormat('en-LK', {
-      style: 'currency',
-      currency: 'LKR',
-      minimumFractionDigits: 2
-    }).format(amount);
-  };
+  const formatCurrency = (amount, currency = 'LKR') => {
+  if (!amount && amount !== 0) return "Not specified";
+  
+  const symbol = currency === 'USD' ? '$' : 'RS. ';
+  
+  return `${symbol}${new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount)}`;
+};
 
   // Get result badge class based on auction_results status
   const getResultBadgeClass = (resultStatus) => {

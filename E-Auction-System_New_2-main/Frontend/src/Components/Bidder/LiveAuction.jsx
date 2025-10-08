@@ -26,12 +26,16 @@ const LiveAuction = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-LK', {
-      style: 'currency',
-      currency: 'LKR'
-    }).format(amount);
-  };
+  const formatCurrency = (amount, currency = 'LKR') => {
+  if (!amount && amount !== 0) return "Not specified";
+  
+  const symbol = currency === 'USD' ? '$' : 'RS. ';
+  
+  return `${symbol}${new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount)}`;
+};
 
   // Get current SL time
   const getCurrentSLTime = () => {
