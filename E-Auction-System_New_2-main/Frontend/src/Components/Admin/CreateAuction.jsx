@@ -20,7 +20,8 @@ import {
   MenuItem,
   Select,
   FormControl,
-  InputLabel
+  InputLabel,
+  InputAdornment
 } from '@mui/material';
 import '../../styles/createAuction.css';
 import Card from '../Common/Card';
@@ -38,6 +39,7 @@ const CreateAuction = () => {
     duration_minutes: 30,
     ceiling_price: '',
     currency: 'LKR',
+    step_amount: '',
     special_notices: '',
     selected_bidders: [],
     category: '',
@@ -94,6 +96,7 @@ const CreateAuction = () => {
           duration_minutes: parseInt(auction.Duration) || 0,
           ceiling_price: auction.CeilingPrice || 0,
           currency: auction.Currency || 'LKR',
+          step_amount: auction.StepAmount || 0,
           created_at: auction.CreatedAt || '',
           special_notices: auction.SpecialNotices || '-',
           category: auction.Category || '',
@@ -161,6 +164,7 @@ const CreateAuction = () => {
       { field: 'start_time', message: 'Start time is required' },
       { field: 'ceiling_price', message: 'Ceiling price is required' },
       { field: 'currency', message: 'Currency is required' },
+      { field: 'step_amount', message: 'Step amount is required' },
       { field: 'category', message: 'Category is required' },
       { field: 'sbu', message: 'SBU is required' },
       { field: 'created_by_name', message: 'Created by is required' }
@@ -178,6 +182,16 @@ const CreateAuction = () => {
       return;
     }
     
+    if (parseFloat(formData.step_amount) >= parseFloat(formData.ceiling_price)) {
+      setError('Step amount must be less than ceiling price');
+      return;
+    }
+
+    // NEW VALIDATION: Step amount must be positive
+    if (parseFloat(formData.step_amount) <= 0) {
+      setError('Step amount must be a positive number');
+      return;
+    }
     try {
       setLoading(true);
       setError('');
@@ -193,6 +207,7 @@ const CreateAuction = () => {
         duration_minutes: 30,
         ceiling_price: '',
         currency: 'LKR',
+        step_amount: '',
         special_notices: '',
         selected_bidders: [],
         category: '',
@@ -277,7 +292,8 @@ const CreateAuction = () => {
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit}>
+<form onSubmit={handleSubmit}>
+          {/* Row 1: Title and Date */}
           <div className="row mb-3">
             <div className="col-md-6">
               <TextField
@@ -308,8 +324,9 @@ const CreateAuction = () => {
             </div>
           </div>
 
+          {/* Row 2: Start Time and Duration */}
           <div className="row mb-3">
-            <div className="col-md-4">
+            <div className="col-md-6">
               <TextField
                 fullWidth
                 type="time"
@@ -322,7 +339,7 @@ const CreateAuction = () => {
                 disabled={loading}
               />
             </div>
-            <div className="col-md-4">
+            <div className="col-md-6">
               <TextField
                 fullWidth
                 type="number"
@@ -335,49 +352,90 @@ const CreateAuction = () => {
                 inputProps={{ min: 1, max: 1440 }}
               />
             </div>
-
-            <TextField
-              fullWidth
-              type="number"
-              name="ceiling_price"
-              label="Ceiling Price"
-              value={formData.ceiling_price}
-              onChange={handleChange}
-              required
-              disabled={loading}
-              inputProps={{ min: 0, step: '0.01' }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    {formData.currency === 'LKR' ? '₨' : '$'}
-                  </InputAdornment>
-                )
-              }}
-            />
           </div>
 
-          {/* Row 3: Currency, Category, SBU */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-            <FormControl fullWidth>
-              <InputLabel id="currency-label">Currency</InputLabel>
-              <Select
-                labelId="currency-label"
-                name="currency"
-                value={formData.currency}
+          {/* Row 3: Ceiling Price, Currency, Step Amount - NEW LAYOUT */}
+          <div className="row mb-3">
+            <div className="col-md-4">
+              <TextField
+                fullWidth
+                type="number"
+                name="ceiling_price"
+                label="Ceiling Price"
+                value={formData.ceiling_price}
                 onChange={handleChange}
-                label="Currency"
                 required
                 disabled={loading}
-              >
-                {currencyOptions.map(curr => (
-                  <MenuItem key={curr} value={curr}>
-                    {curr} {curr === 'LKR' ? '(₨)' : '($)'}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                inputProps={{ min: 0, step: '0.01' }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      {formData.currency === 'LKR' ? '₨' : '$'}
+                    </InputAdornment>
+                  )
+                }}
+              />
+            </div>
             
             <div className="col-md-4">
+              <FormControl fullWidth>
+                <InputLabel id="currency-label">Currency</InputLabel>
+                <Select
+                  labelId="currency-label"
+                  name="currency"
+                  value={formData.currency}
+                  onChange={handleChange}
+                  label="Currency"
+                  required
+                  disabled={loading}
+                >
+                  {currencyOptions.map(curr => (
+                    <MenuItem key={curr} value={curr}>
+                      {curr} {curr === 'LKR' ? '(₨)' : '($)'}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </div>
+
+            {/* NEW FIELD: Step Amount */}
+            <div className="col-md-4">
+              <TextField
+                fullWidth
+                type="number"
+                name="step_amount"
+                label="Step Amount"
+                value={formData.step_amount}
+                onChange={handleChange}
+                required
+                disabled={loading}
+                inputProps={{ min: 0, step: '0.01' }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      {formData.currency === 'LKR' ? '₨' : '$'}
+                    </InputAdornment>
+                  )
+                }}
+                helperText="Minimum bid decrement amount"
+              />
+            </div>
+          </div>
+
+          {/* Row 4: Category, SBU */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <TextField
+                fullWidth
+                label="Category"
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                required
+                disabled={loading}
+              />
+            </div>
+            <div className="col-md-6">
               <FormControl fullWidth>
                 <InputLabel id="sbu-label">SBU</InputLabel>
                 <Select
@@ -397,19 +455,9 @@ const CreateAuction = () => {
             </div>
           </div>
 
+          {/* Row 5: Created By */}
           <div className="row mb-3">
-            <div className="col-md-6">
-              <TextField
-                fullWidth
-                label="Category"
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                required
-                disabled={loading}
-              />
-            </div>
-            <div className="col-md-6">
+            <div className="col-md-12">
               <TextField
                 fullWidth
                 label="Created By"
@@ -422,6 +470,7 @@ const CreateAuction = () => {
             </div>
           </div>
 
+          {/* Special Notices */}
           <div className="mb-3">
             <label className="form-label">Special Notices</label>
             <TextareaAutosize
@@ -493,23 +542,21 @@ const CreateAuction = () => {
             </div>
           </div>
 
+          {/* Submit Button */}
           <div className="text-center">
             <Button
-  variant="contained"
-  type="submit"
-  className="custom-auction-btn"
-  disabled={loading}
-  startIcon={loading ? <CircularProgress size={20} /> : null}
->
-  {loading ? 'Creating Auction...' : 'Create Auction'}
-</Button>
-
+              variant="contained"
+              type="submit"
+              className="custom-auction-btn"
+              disabled={loading}
+              startIcon={loading ? <CircularProgress size={20} /> : null}
+            >
+              {loading ? 'Creating Auction...' : 'Create Auction'}
+            </Button>
           </div>
         </form>
       </Card>
-
-     
-     </div>
+    </div>
   );
 };
 

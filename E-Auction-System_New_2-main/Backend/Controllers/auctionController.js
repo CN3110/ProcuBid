@@ -163,6 +163,7 @@ const createAuction = async (req, res) => {
       duration_minutes,
       ceiling_price,        // NEW FIELD
       currency,             // NEW FIELD
+      step_amount,
       special_notices,
       selected_bidders,
       category,
@@ -181,7 +182,8 @@ const createAuction = async (req, res) => {
       !sbu ||
       !created_by_name ||
       !ceiling_price ||     // NEW VALIDATION
-      !currency 
+      !currency ||
+      !step_amount
     ) {
       return res.status(400).json({
         success: false,
@@ -206,6 +208,21 @@ const createAuction = async (req, res) => {
       });
     }
 
+    // Validate step amount - NEW VALIDATION
+    if (isNaN(step_amount) || parseFloat(step_amount) <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Step amount must be a positive number",
+      });
+    }
+
+     // Validate step amount is less than ceiling price - NEW VALIDATION
+    if (parseFloat(step_amount) >= parseFloat(ceiling_price)) {
+      return res.status(400).json({
+        success: false,
+        error: "Step amount must be less than ceiling price",
+      });
+    }
 
     // Validate auction date/time is in future (Sri Lanka time)
     const nowSL = getCurrentSLTime();
@@ -280,13 +297,14 @@ const createAuction = async (req, res) => {
           start_time, 
           duration_minutes,
           ceiling_price,
-          currency, 
+          currency,
+          step_amount, 
           special_notices, 
           status,
           category,
           sbu,
           created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           auctionId,
           title,
@@ -295,6 +313,7 @@ const createAuction = async (req, res) => {
           duration_minutes,
           parseFloat(ceiling_price),  // NEW FIELD
           currency,                    // NEW FIELD
+          parseFloat(step_amount),
           special_notices || null,
           "pending",
           category,
@@ -386,6 +405,7 @@ const getAuction = async (req, res) => {
         a.duration_minutes,
         a.ceiling_price,
         a.currency,
+        a.step_amount,
         a.created_by,
         a.created_at,
         a.special_notices,
@@ -844,6 +864,8 @@ const emailPromises = bidders.map(async (bidder) => {
   <p><strong>🏢 SBU:</strong> ${auctionData.sbu}</p>
   <p><strong>📅 Date & Time:</strong> ${displayDateTime}</p>
   <p><strong>⏱️ Duration:</strong> ${auctionData.duration_minutes} minutes</p>
+  <p><strong>💰 Ceiling Price:</strong> ${auctionData.currency === 'LKR' ? '₨' : '$'}${parseFloat(auctionData.ceiling_price).toLocaleString()}</p>
+  <p><strong>📊 Step Amount:</strong> ${auctionData.currency === 'LKR' ? '₨' : '$'}${parseFloat(auctionData.step_amount).toLocaleString()}</p>
   ${
     auctionData.special_notices
       ? `<p><strong>📝 Special Notices:</strong> ${auctionData.special_notices}</p>`
@@ -863,10 +885,20 @@ const emailPromises = bidders.map(async (bidder) => {
   </ul>
 </div>
 
+<div style="background-color: #e8f6ff; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff; margin: 25px 0;">
+  <p><strong>ℹ️ Note:</strong></p>
+  <ul>
+    <li><strong>Ceiling Price</strong> represents the maximum allowable bid value. Bidders must place bids below this price.</li>
+    <li><strong>Step Amount</strong> indicates the minimum decrement allowed for each subsequent bid. 
+        (e.g., if Step Amount = 0.1, your next bid must be at least 0.1 lower than the previous bid.)</li>
+  </ul>
+</div>
+
 <p>We look forward to your active participation.</p>
 <br>
 <p>Best regards,<br>
-<strong>ProcuBid E-Auction System Team</strong></p>
+The ProcuBid E-Auction Team</p>
+
 
 <hr style="margin: 20px 0;">
 <p style="font-size: 12px; color: #666;">
@@ -1078,6 +1110,7 @@ const updateAuction = async (req, res) => {
       start_time,
       duration_minutes,
       ceiling_price,      // NEW FIELD
+      step_amount,
       currency,  
       special_notices,
       selected_bidders,
@@ -1130,7 +1163,8 @@ const updateAuction = async (req, res) => {
       !category ||
       !sbu ||
        !ceiling_price ||     // NEW VALIDATION
-      !currency    // NEW VALIDATION
+      !currency ||   // NEW VALIDATION
+      !step_amount
     ) {
       return res.status(400).json({
         success: false,
@@ -1191,6 +1225,7 @@ const updateAuction = async (req, res) => {
           duration_minutes = ?, 
           ceiling_price = ?,
           currency = ?,
+          step_amount = ?,
           special_notices = ?, 
           category = ?,
           sbu = ?,
@@ -1203,6 +1238,7 @@ const updateAuction = async (req, res) => {
           duration_minutes,
           parseFloat(ceiling_price),  // NEW FIELD
           currency,
+          parseFloat(step_amount),
           special_notices || null,
           category,
           sbu,
