@@ -134,14 +134,16 @@ const BidRecordsModal = ({ auction, onClose }) => {
   /**
    * Format currency
    */
-  const formatCurrency = (amount) => {
-    if (!amount) return "0.00";
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "LKR",
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
+ const formatCurrency = (amount, currency = 'LKR') => {
+  if (!amount && amount !== 0) return "Not specified";
+  
+  const symbol = currency === 'USD' ? '$' : 'RS. ';
+  
+  return `${symbol}${new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount)}`;
+};
 
   /**
    * Get sort indicator
@@ -176,7 +178,7 @@ const BidRecordsModal = ({ auction, onClose }) => {
       'Bid Time': new Date(bid.bid_time).toLocaleString('en-GB'),
       'Bidder Name': bid.bidder_name || 'N/A',
       'Company': bid.company_name || 'Not specified',
-      'Bid Amount (LKR)': parseFloat(bid.bid_amount)
+      'Bid Amount': parseFloat(bid.bid_amount)
       
     }));
 
