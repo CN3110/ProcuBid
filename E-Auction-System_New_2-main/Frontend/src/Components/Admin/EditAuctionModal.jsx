@@ -3,12 +3,15 @@ import { updateAuction, fetchActiveBidders } from '../../services/auctionService
 import '../../styles/editAuctionModal.css';
 
 const EditAuctionModal = ({ auction, onClose, onSave }) => {
-  // State for form data
+  // State for form data - UPDATED with new fields
   const [formData, setFormData] = useState({
     title: '',
     auction_date: '',
     start_time: '',
     duration_minutes: '',
+    ceiling_price: '',      // NEW FIELD
+    currency: 'LKR',        // NEW FIELD
+    step_amount: '',        // NEW FIELD
     category: '',
     sbu: '',
     special_notices: '',
@@ -24,7 +27,10 @@ const EditAuctionModal = ({ auction, onClose, onSave }) => {
   const [error, setError] = useState(null);
   const [validationErrors, setValidationErrors] = useState({});
 
-  // Initialize form data when auction prop changes
+  // Currency options
+  const currencyOptions = ['LKR', 'USD'];
+
+  // Initialize form data when auction prop changes - UPDATED
   useEffect(() => {
     if (auction) {
       // Parse the date and time for the form inputs
@@ -36,6 +42,9 @@ const EditAuctionModal = ({ auction, onClose, onSave }) => {
         auction_date: auctionDate,
         start_time: startTime,
         duration_minutes: auction.duration_minutes || parseInt(auction.Duration) || '',
+        ceiling_price: auction.ceiling_price || '',           // NEW FIELD
+        currency: auction.currency || 'LKR',                  // NEW FIELD
+        step_amount: auction.step_amount || '',               // NEW FIELD
         category: auction.category || '',
         sbu: auction.sbu || '',
         special_notices: auction.special_notices || '',
@@ -108,7 +117,7 @@ const EditAuctionModal = ({ auction, onClose, onSave }) => {
   };
 
   /**
-   * Validate form data
+   * Validate form data - UPDATED with new field validations
    */
   const validateForm = () => {
     const errors = {};
@@ -140,6 +149,25 @@ const EditAuctionModal = ({ auction, onClose, onSave }) => {
       errors.duration_minutes = 'Duration cannot exceed 8 hours (480 minutes)';
     }
 
+    // NEW VALIDATIONS
+    if (!formData.ceiling_price) {
+      errors.ceiling_price = 'Ceiling price is required';
+    } else if (parseFloat(formData.ceiling_price) <= 0) {
+      errors.ceiling_price = 'Ceiling price must be a positive number';
+    }
+
+    if (!formData.currency) {
+      errors.currency = 'Currency is required';
+    }
+
+    if (!formData.step_amount) {
+      errors.step_amount = 'Step amount is required';
+    } else if (parseFloat(formData.step_amount) <= 0) {
+      errors.step_amount = 'Step amount must be a positive number';
+    } else if (parseFloat(formData.step_amount) >= parseFloat(formData.ceiling_price)) {
+      errors.step_amount = 'Step amount must be less than ceiling price';
+    }
+
     if (!formData.category.trim()) {
       errors.category = 'Category is required';
     }
@@ -157,7 +185,7 @@ const EditAuctionModal = ({ auction, onClose, onSave }) => {
   };
 
   /**
-   * Handle form submission
+   * Handle form submission - UPDATED
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -170,10 +198,12 @@ const EditAuctionModal = ({ auction, onClose, onSave }) => {
       setSaving(true);
       setError(null);
 
-      // Prepare the update data
+      // Prepare the update data - UPDATED
       const updateData = {
         ...formData,
         duration_minutes: parseInt(formData.duration_minutes),
+        ceiling_price: parseFloat(formData.ceiling_price),      // NEW FIELD
+        step_amount: parseFloat(formData.step_amount),          // NEW FIELD
         created_by_name: auction.created_by // Keep original creator
       };
 
@@ -201,6 +231,13 @@ const EditAuctionModal = ({ auction, onClose, onSave }) => {
     if (e.target === e.currentTarget) {
       onClose();
     }
+  };
+
+  /**
+   * Get currency symbol
+   */
+  const getCurrencySymbol = () => {
+    return formData.currency === 'USD' ? '$' : '₨';
   };
 
   return (
@@ -353,6 +390,87 @@ const EditAuctionModal = ({ auction, onClose, onSave }) => {
                   {validationErrors.duration_minutes && (
                     <span className="error-text">{validationErrors.duration_minutes}</span>
                   )}
+                </div>
+              </div>
+            </div>
+
+            {/* NEW SECTION: Pricing Information */}
+            <div className="form-section">
+              <h3>Pricing Information</h3>
+              
+              <div className="form-grid form-grid-3">
+                {/* Ceiling Price */}
+                <div className="form-group">
+                  <label htmlFor="ceiling_price">
+                    Ceiling Price <span className="required">*</span>
+                  </label>
+                  <div className="input-with-prefix">
+                    <span className="input-prefix">{getCurrencySymbol()}</span>
+                    <input
+                      type="number"
+                      id="ceiling_price"
+                      name="ceiling_price"
+                      value={formData.ceiling_price}
+                      onChange={handleInputChange}
+                      className={validationErrors.ceiling_price ? 'error with-prefix' : 'with-prefix'}
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  {validationErrors.ceiling_price && (
+                    <span className="error-text">{validationErrors.ceiling_price}</span>
+                  )}
+                </div>
+
+                {/* Currency */}
+                <div className="form-group">
+                  <label htmlFor="currency">
+                    Currency <span className="required">*</span>
+                  </label>
+                  <select
+                    id="currency"
+                    name="currency"
+                    value={formData.currency}
+                    onChange={handleInputChange}
+                    className={validationErrors.currency ? 'error' : ''}
+                  >
+                    {currencyOptions.map(curr => (
+                      <option key={curr} value={curr}>
+                        {curr} {curr === 'LKR' ? '(₨)' : '($)'}
+                      </option>
+                    ))}
+                  </select>
+                  {validationErrors.currency && (
+                    <span className="error-text">{validationErrors.currency}</span>
+                  )}
+                </div>
+
+                {/* Step Amount */}
+                <div className="form-group">
+                  <label htmlFor="step_amount">
+                    Step Amount <span className="required">*</span>
+                  </label>
+                  <div className="input-with-prefix">
+                    <span className="input-prefix">{getCurrencySymbol()}</span>
+                    <input
+                      type="number"
+                      id="step_amount"
+                      name="step_amount"
+                      value={formData.step_amount}
+                      onChange={handleInputChange}
+                      className={validationErrors.step_amount ? 'error with-prefix' : 'with-prefix'}
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  {validationErrors.step_amount && (
+                    <span className="error-text">{validationErrors.step_amount}</span>
+                  )}
+                  <small className="form-hint">
+                    Minimum bid decrement amount (must be less than ceiling price)
+                  </small>
                 </div>
               </div>
             </div>

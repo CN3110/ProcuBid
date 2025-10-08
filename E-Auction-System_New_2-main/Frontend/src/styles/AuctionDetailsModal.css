@@ -1936,3 +1936,25 @@
 .border-not-shortlisted {
   border-color: #ffc107 !important;
 }
+
+.price-display {
+  font-weight: 600;
+  color: #2c5282;
+  font-size: 1.05em;
+}
+
+.currency-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: #e6f3ff;
+  border-radius: 12px;
+  color: #1e5a9e;
+  font-weight: 500;
+  font-size: 0.95em;
+}
+
+.step-amount-display {
+  font-weight: 500;
+  color: #38a169;
+  font-size: 1em;
+}

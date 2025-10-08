@@ -541,14 +541,16 @@ const canShortlist = () => {
   /**
    * Format currency for display
    */
-  const formatCurrency = (amount) => {
-    if (!amount) return "No bids";
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "LKR",
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
+  const formatCurrency = (amount, currency = 'LKR') => {
+  if (!amount && amount !== 0) return "Not specified";
+  
+  const symbol = currency === 'USD' ? '$' : '₨';
+  
+  return `${symbol}${new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount)}`;
+};
 
   /**
    * Handle modal backdrop click
@@ -757,6 +759,34 @@ const canShortlist = () => {
                       minutes
                     </span>
                   </div>
+                  <div className="detail-item">
+  <label>Ceiling Price:</label>
+  <span className="price-display">
+    {formatCurrency(
+      displayAuction.ceiling_price || 0,
+      displayAuction.currency || 'LKR'
+    )}
+  </span>
+</div>
+
+<div className="detail-item">
+  <label>Currency:</label>
+  <span className="currency-badge">
+    {displayAuction.currency || 'LKR'} 
+    {displayAuction.currency === 'USD' ? ' ($)' : ' (₨)'}
+  </span>
+</div>
+
+<div className="detail-item">
+  <label>Step Amount:</label>
+  <span className="step-amount-display">
+    {formatCurrency(
+      displayAuction.step_amount || 0,
+      displayAuction.currency || 'LKR'
+    )}
+  </span>
+</div>
+
 
                   <div className="detail-item">
                     <label>Created By:</label>
@@ -924,10 +954,13 @@ const canShortlist = () => {
                                 {bidder.company_name || "Not specified"}
                               </td>
                               <td className="bid-amount">
-                                <span className={index === 0 ? "winning-amount" : "regular-amount"}>
-                                  {formatCurrency(bidder.lowest_bid_amount || bidder.latest_bid_amount)}
-                                </span>
-                              </td>
+  <span className={index === 0 ? "winning-amount" : "regular-amount"}>
+    {formatCurrency(
+      bidder.lowest_bid_amount || bidder.latest_bid_amount,
+      displayAuction.currency || 'LKR'
+    )}
+  </span>
+</td>
                               <td>
                                 <span className={getStatusBadgeClass(bidder.result_status || 'pending')}>
                                   {bidder.result_status ?
