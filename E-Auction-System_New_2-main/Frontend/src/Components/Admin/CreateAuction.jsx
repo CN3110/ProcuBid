@@ -36,6 +36,8 @@ const CreateAuction = () => {
     auction_date: '',
     start_time: '',
     duration_minutes: 30,
+    ceiling_price: '',
+    currency: 'LKR',
     special_notices: '',
     selected_bidders: [],
     category: '',
@@ -53,7 +55,9 @@ const CreateAuction = () => {
   const [success, setSuccess] = useState('');
 
   // SBU options
-  const sbuOptions = ['KSPA Paper', 'KSPA Packaging', 'Ethimale', 'KSPA Accessories', 'ATIRE']; 
+  const sbuOptions = ['KSPA Paper', 'KSPA Packaging', 'Ethimale', 'KSPA Accessories', 'ATIRE'];
+  const currencyOptions = ['LKR', 'USD'];
+ 
 
   useEffect(() => {
     const loadBidders = async () => {
@@ -88,6 +92,9 @@ const CreateAuction = () => {
           auction_date: date,
           start_time: time,
           duration_minutes: parseInt(auction.Duration) || 0,
+          ceiling_price: auction.CeilingPrice || 0,
+          currency: auction.Currency || 'LKR',
+          created_at: auction.CreatedAt || '',
           special_notices: auction.SpecialNotices || '-',
           category: auction.Category || '',
           sbu: auction.SBU || '',
@@ -152,6 +159,8 @@ const CreateAuction = () => {
       { field: 'title', message: 'Auction title is required' },
       { field: 'auction_date', message: 'Auction date is required' },
       { field: 'start_time', message: 'Start time is required' },
+      { field: 'ceiling_price', message: 'Ceiling price is required' },
+      { field: 'currency', message: 'Currency is required' },
       { field: 'category', message: 'Category is required' },
       { field: 'sbu', message: 'SBU is required' },
       { field: 'created_by_name', message: 'Created by is required' }
@@ -182,6 +191,8 @@ const CreateAuction = () => {
         auction_date: '',
         start_time: '',
         duration_minutes: 30,
+        ceiling_price: '',
+        currency: 'LKR',
         special_notices: '',
         selected_bidders: [],
         category: '',
@@ -324,6 +335,48 @@ const CreateAuction = () => {
                 inputProps={{ min: 1, max: 1440 }}
               />
             </div>
+
+            <TextField
+              fullWidth
+              type="number"
+              name="ceiling_price"
+              label="Ceiling Price"
+              value={formData.ceiling_price}
+              onChange={handleChange}
+              required
+              disabled={loading}
+              inputProps={{ min: 0, step: '0.01' }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    {formData.currency === 'LKR' ? '₨' : '$'}
+                  </InputAdornment>
+                )
+              }}
+            />
+          </div>
+
+          {/* Row 3: Currency, Category, SBU */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <FormControl fullWidth>
+              <InputLabel id="currency-label">Currency</InputLabel>
+              <Select
+                labelId="currency-label"
+                name="currency"
+                value={formData.currency}
+                onChange={handleChange}
+                label="Currency"
+                required
+                disabled={loading}
+              >
+                {currencyOptions.map(curr => (
+                  <MenuItem key={curr} value={curr}>
+                    {curr} {curr === 'LKR' ? '(₨)' : '($)'}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            
             <div className="col-md-4">
               <FormControl fullWidth>
                 <InputLabel id="sbu-label">SBU</InputLabel>

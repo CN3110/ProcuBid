@@ -161,6 +161,8 @@ const createAuction = async (req, res) => {
       auction_date,
       start_time,
       duration_minutes,
+      ceiling_price,        // NEW FIELD
+      currency,             // NEW FIELD
       special_notices,
       selected_bidders,
       category,
@@ -177,14 +179,33 @@ const createAuction = async (req, res) => {
       !selected_bidders?.length ||
       !category ||
       !sbu ||
-      !created_by_name
+      !created_by_name ||
+      !ceiling_price ||     // NEW VALIDATION
+      !currency 
     ) {
       return res.status(400).json({
         success: false,
         error:
-          "Missing required fields: title, auction_date, start_time, duration_minutes, selected_bidders, category, sbu, or created_by_name",
+          "Missing required fields: title, auction_date, start_time, duration_minutes, ceiling_price, currency, selected_bidders, category, sbu, or created_by_name",
       });
     }
+
+      // Validate currency
+    if (!['LKR', 'USD'].includes(currency)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid currency. Must be either LKR or USD",
+      });
+    }
+
+    // Validate ceiling price
+    if (isNaN(ceiling_price) || parseFloat(ceiling_price) <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Ceiling price must be a positive number",
+      });
+    }
+
 
     // Validate auction date/time is in future (Sri Lanka time)
     const nowSL = getCurrentSLTime();
@@ -257,19 +278,23 @@ const createAuction = async (req, res) => {
           title, 
           auction_date, 
           start_time, 
-          duration_minutes, 
+          duration_minutes,
+          ceiling_price,
+          currency, 
           special_notices, 
           status,
           category,
           sbu,
           created_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           auctionId,
           title,
           auction_date,
           start_time,
           duration_minutes,
+          parseFloat(ceiling_price),  // NEW FIELD
+          currency,                    // NEW FIELD
           special_notices || null,
           "pending",
           category,
@@ -359,6 +384,8 @@ const getAuction = async (req, res) => {
         a.auction_date,
         a.start_time,
         a.duration_minutes,
+        a.ceiling_price,
+        a.currency,
         a.created_by,
         a.created_at,
         a.special_notices,
@@ -1050,6 +1077,8 @@ const updateAuction = async (req, res) => {
       auction_date,
       start_time,
       duration_minutes,
+      ceiling_price,      // NEW FIELD
+      currency,  
       special_notices,
       selected_bidders,
       category,
@@ -1099,7 +1128,9 @@ const updateAuction = async (req, res) => {
       !duration_minutes ||
       !selected_bidders?.length ||
       !category ||
-      !sbu
+      !sbu ||
+       !ceiling_price ||     // NEW VALIDATION
+      !currency    // NEW VALIDATION
     ) {
       return res.status(400).json({
         success: false,
@@ -1158,6 +1189,8 @@ const updateAuction = async (req, res) => {
           auction_date = ?, 
           start_time = ?, 
           duration_minutes = ?, 
+          ceiling_price = ?,
+          currency = ?,
           special_notices = ?, 
           category = ?,
           sbu = ?,
@@ -1168,6 +1201,8 @@ const updateAuction = async (req, res) => {
           auction_date,
           start_time,
           duration_minutes,
+          parseFloat(ceiling_price),  // NEW FIELD
+          currency,
           special_notices || null,
           category,
           sbu,
