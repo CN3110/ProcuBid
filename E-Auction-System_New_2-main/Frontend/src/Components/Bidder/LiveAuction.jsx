@@ -26,6 +26,13 @@ const LiveAuction = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  const getCurrencySymbol = (currency) => {
+    switch (currency) {
+      case 'USD': return '$';
+      case 'LKR': return 'Rs.';
+   }
+  };
+
   const formatCurrency = (amount, currency = 'LKR') => {
   if (!amount && amount !== 0) return "Not specified";
   
@@ -550,9 +557,11 @@ const handleRefresh = async () => {
             <p><strong>Auction ID:</strong> {auction.auction_id}</p>
             <p><strong>Category:</strong> {auction.category}</p>
             <p><strong>SBU:</strong> {auction.sbu}</p>
+            <p><strong>Ceiling Price:</strong> {auction.ceiling_price ? formatCurrency(auction.ceiling_price, auction.currency) : 'LKR'}</p> 
+            <p><strong>Step Amount:</strong>{auction.step_amount ? formatCurrency(auction.step_amount, auction.currency) : 'LKR'}</p>
             <p><strong>Start Date/Time:</strong>{auctionStart ? formatToSLTime(auctionStart) : 'Invalid date'}</p>
             <p><strong>End Date/Time:</strong>{auctionEnd ? formatToSLTime(auctionEnd) : 'Invalid date'}</p>
-            <p><strong>Duration:</strong> {auction.duration_minutes} minutes</p>  
+            <p><strong>Duration:</strong> {auction.duration_minutes} minutes</p> 
             <p><strong>Time Until End:</strong>{auction.time_until_end}</p> 
             {auction.special_notices && (
               <div className="mt-3">

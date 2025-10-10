@@ -66,166 +66,258 @@ const isAuctionLive = (auction) => {
 
 // Place a bid - FIXED TIMEZONE AND VALIDATION
 const placeBid = async (req, res) => {
-    try {
-        const { amount, auction_id } = req.body;
-        const bidder_id = req.user.id;
+  try {
+    const { amount, auction_id } = req.body;
+    const bidder_id = req.user.id;
 
-        console.log('Place bid request:', { amount, auction_id, bidder_id });
+    console.log('📥 Place bid request:', { amount, auction_id, bidder_id });
 
-        // Validate input
-        if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
-            return res.status(400).json({ 
-                success: false,
-                error: 'Please enter a valid positive bid amount' 
-            });
-        }
-
-        if (!auction_id) {
-            return res.status(400).json({ 
-                success: false,
-                error: 'Auction ID is required' 
-            });
-        }
-
-        // Get auction details and validate
-        const { data: auctions, error: auctionError } = await query(
-            'SELECT * FROM auctions WHERE id = ?',
-            [auction_id]
-        );
-
-        if (auctionError || !auctions || auctions.length === 0) {
-            console.error('Auction not found:', auctionError);
-            return res.status(404).json({ 
-                success: false,
-                error: 'Auction not found' 
-            });
-        }
-
-        const auction = auctions[0];
-        console.log('Found auction:', {
-            id: auction.id,
-            auction_id: auction.auction_id,
-            status: auction.status,
-            auction_date: auction.auction_date,
-            start_time: auction.start_time,
-            duration_minutes: auction.duration_minutes
-        });
-
-        // Check if auction is live using FIXED logic
-        if (!isAuctionLive(auction)) {
-            const nowSL = getCurrentSLTime();
-            
-            // Parse auction datetime properly
-            let auctionDate = auction.auction_date;
-            if (auctionDate instanceof Date) {
-                auctionDate = moment(auctionDate).format('YYYY-MM-DD');
-            } else if (typeof auctionDate === 'string') {
-                auctionDate = moment(auctionDate).format('YYYY-MM-DD');
-            }
-            
-            let auctionTime = String(auction.start_time);
-            if (auctionTime.includes('.')) {
-                auctionTime = auctionTime.split('.')[0];
-            }
-            
-            const startDateTime = moment.tz(`${auctionDate} ${auctionTime}`, 'YYYY-MM-DD HH:mm:ss', 'Asia/Colombo');
-            const endDateTime = startDateTime.clone().add(auction.duration_minutes, 'minutes');
-            
-            let message = 'Auction is not currently live';
-            if (nowSL.isBefore(startDateTime)) {
-                message = `Auction hasn't started yet. It will begin at ${startDateTime.format('MMMM DD, YYYY hh:mm A')} (Sri Lanka Time)`;
-            } else if (nowSL.isAfter(endDateTime)) {
-                message = `Auction has ended. It ended at ${endDateTime.format('MMMM DD, YYYY hh:mm A')} (Sri Lanka Time)`;
-            } else if (auction.status !== 'approved' && auction.status !== 'live') {
-                message = `Auction status is "${auction.status}". Only approved auctions can accept bids.`;
-            }
-            
-            console.log('Auction not live:', {
-                message,
-                current_time_sl: nowSL.format('YYYY-MM-DD HH:mm:ss'),
-                auction_start: startDateTime.format('YYYY-MM-DD HH:mm:ss'),
-                auction_end: endDateTime.format('YYYY-MM-DD HH:mm:ss'),
-                auction_status: auction.status
-            });
-            
-            return res.status(400).json({ 
-                success: false,
-                error: message,
-                current_time_sl: nowSL.format('YYYY-MM-DD HH:mm:ss'),
-                auction_start: startDateTime.format('YYYY-MM-DD HH:mm:ss'),
-                auction_end: endDateTime.format('YYYY-MM-DD HH:mm:ss'),
-                auction_status: auction.status
-            });
-        }
-
-        // Check if bidder is invited to this auction
-        const { data: invitations, error: inviteError } = await query(
-            'SELECT * FROM auction_bidders WHERE auction_id = ? AND bidder_id = ?',
-            [auction_id, bidder_id]
-        );
-
-        if (inviteError || !invitations || invitations.length === 0) {
-            return res.status(403).json({ 
-                success: false,
-                error: 'You are not invited to this auction' 
-            });
-        }
-
-        // Insert the new bid with Sri Lanka time
-        const bidTime = getCurrentSLTime();
-        const { data: bidResult, error: bidError } = await query(
-            'INSERT INTO bids (auction_id, bidder_id, amount, bid_time) VALUES (?, ?, ?, ?)',
-            [auction_id, bidder_id, parseFloat(amount), bidTime.format('YYYY-MM-DD HH:mm:ss')]
-        );
-
-        if (bidError) {
-            console.error('Bid insertion error:', bidError);
-            return res.status(500).json({ 
-                success: false,
-                error: 'Failed to place bid' 
-            });
-        }
-
-        // Get the created bid
-        const { data: newBids } = await query(
-            'SELECT * FROM bids WHERE auction_id = ? AND bidder_id = ? ORDER BY bid_time DESC LIMIT 1',
-            [auction_id, bidder_id]
-        );
-
-        const newBid = newBids[0];
-
-        // Get current rank after placing bid
-        const rank = await getBidderCurrentRank(auction_id, bidder_id);
-
-        // Get current lowest bid for the auction
-        const { data: lowestBids } = await query(
-            'SELECT amount FROM bids WHERE auction_id = ? ORDER BY amount ASC LIMIT 1',
-            [auction_id]
-        );
-
-        console.log('Bid placed successfully:', {
-            bid_id: newBid.id,
-            amount: newBid.amount,
-            rank: rank,
-            current_lowest: lowestBids?.[0]?.amount
-        });
-
-        res.status(201).json({
-            success: true,
-            message: 'Bid placed successfully!',
-            bid: newBid,
-            rank: rank,
-            currentLowest: lowestBids?.[0]?.amount || parseFloat(amount),
-            bid_time_sl: bidTime.format('YYYY-MM-DD HH:mm:ss')
-        });
-
-    } catch (error) {
-        console.error('Bid placement error:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Failed to process bid'
-        });
+    // ✅ Input validation
+    if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please enter a valid positive bid amount'
+      });
     }
+
+    if (!auction_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Auction ID is required'
+      });
+    }
+
+    const bidAmount = parseFloat(amount);
+
+    // ✅ Get auction details first
+    const { data: auctions, error: auctionError } = await query(
+      'SELECT * FROM auctions WHERE id = ?',
+      [auction_id]
+    );
+
+    if (auctionError || !auctions || auctions.length === 0) {
+      console.error('❌ Auction not found:', auctionError);
+      return res.status(404).json({
+        success: false,
+        error: 'Auction not found'
+      });
+    }
+
+    const auction = auctions[0];
+    console.log('✅ Found auction:', {
+      id: auction.id,
+      auction_id: auction.auction_id,
+      status: auction.status,
+      ceiling_price: auction.ceiling_price,
+      currency: auction.currency,
+      step_amount: auction.step_amount
+    });
+
+    const stepAmount = parseFloat(auction.step_amount || 0);
+
+    // ✅ Step amount format validation (whole multiple)
+    if (stepAmount > 0) {
+      const remainder = Math.round((bidAmount * 100) % (stepAmount * 100));
+      if (remainder !== 0) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid bid amount. Your bid must align with the step amount of Rs.${stepAmount.toFixed(
+            2
+          )}. For example, valid bids would be ${stepAmount.toFixed(2)}, ${(stepAmount * 2).toFixed(2)}, ${(stepAmount * 3).toFixed(2)}, etc.`,
+          validation_error: 'INVALID_STEP_AMOUNT_FORMAT',
+          step_amount: stepAmount,
+          your_bid: bidAmount
+        });
+      }
+    }
+
+    // ✅ Ceiling price validation
+    if (bidAmount > parseFloat(auction.ceiling_price)) {
+      const currencySymbol = auction.currency === 'LKR' ? '₨' : '$';
+      return res.status(400).json({
+        success: false,
+        error: `Bid cannot exceed the ceiling price of ${currencySymbol}${parseFloat(
+          auction.ceiling_price
+        ).toLocaleString()}`,
+        validation_error: 'EXCEEDS_CEILING_PRICE',
+        ceiling_price: parseFloat(auction.ceiling_price),
+        currency: auction.currency
+      });
+    }
+
+    // ✅ NEW: Step amount divisibility validation
+    if (stepAmount > 0) {
+      // Calculate how many decimal places the step amount has
+      const stepAmountStr = stepAmount.toString();
+      const decimalPlaces = stepAmountStr.includes('.') 
+        ? stepAmountStr.split('.')[1].length 
+        : 0;
+      
+      // Convert to integer by multiplying by 10^decimalPlaces to avoid floating point issues
+      const multiplier = Math.pow(10, decimalPlaces);
+      const bidAmountScaled = Math.round(bidAmount * multiplier);
+      const stepAmountScaled = Math.round(stepAmount * multiplier);
+      
+      // Check if bid amount is fully divisible by step amount
+      if (bidAmountScaled % stepAmountScaled !== 0) {
+        const currencySymbol = auction.currency === 'LKR' ? '₨' : '$';
+        
+        // Calculate valid bid examples
+        const validBid1 = stepAmount;
+        const validBid2 = stepAmount * 2;
+        const validBid3 = stepAmount * 3;
+        
+        // Find the nearest valid bids
+        const quotient = Math.floor(bidAmount / stepAmount);
+        const nearestLower = quotient * stepAmount;
+        const nearestHigher = (quotient + 1) * stepAmount;
+        
+        return res.status(400).json({
+          success: false,
+          error: `Invalid bid amount. Your bid must be a multiple of the step amount ${currencySymbol}${stepAmount.toFixed(2)}. ` +
+                 `Valid bids near your amount: ${currencySymbol}${nearestLower.toFixed(2)} or ${currencySymbol}${nearestHigher.toFixed(2)}`,
+          validation_error: 'INVALID_STEP_MULTIPLE',
+          step_amount: stepAmount,
+          your_bid: bidAmount,
+          nearest_valid_bids: {
+            lower: nearestLower,
+            higher: nearestHigher
+          },
+          examples: [validBid1, validBid2, validBid3]
+        });
+      }
+    }
+
+    // ✅ Auction live check
+    if (!isAuctionLive(auction)) {
+      const nowSL = getCurrentSLTime();
+      let auctionDate = auction.auction_date;
+      if (auctionDate instanceof Date) {
+        auctionDate = moment(auctionDate).format('YYYY-MM-DD');
+      } else if (typeof auctionDate === 'string') {
+        auctionDate = moment(auctionDate).format('YYYY-MM-DD');
+      }
+
+      let auctionTime = String(auction.start_time);
+      if (auctionTime.includes('.')) {
+        auctionTime = auctionTime.split('.')[0];
+      }
+
+      const startDateTime = moment.tz(
+        `${auctionDate} ${auctionTime}`,
+        'YYYY-MM-DD HH:mm:ss',
+        'Asia/Colombo'
+      );
+      const endDateTime = startDateTime
+        .clone()
+        .add(auction.duration_minutes, 'minutes');
+
+      let message = 'Auction is not currently live';
+      if (nowSL.isBefore(startDateTime)) {
+        message = `Auction hasn't started yet. It will begin at ${startDateTime.format(
+          'MMMM DD, YYYY hh:mm A'
+        )} (Sri Lanka Time)`;
+      } else if (nowSL.isAfter(endDateTime)) {
+        message = `Auction has ended. It ended at ${endDateTime.format(
+          'MMMM DD, YYYY hh:mm A'
+        )} (Sri Lanka Time)`;
+      } else if (
+        auction.status !== 'approved' &&
+        auction.status !== 'live'
+      ) {
+        message = `Auction status is "${auction.status}". Only approved auctions can accept bids.`;
+      }
+
+      return res.status(400).json({
+        success: false,
+        error: message,
+        validation_error: 'AUCTION_NOT_LIVE'
+      });
+    }
+
+    // ✅ Bidder invitation check
+    const { data: invitations, error: inviteError } = await query(
+      'SELECT * FROM auction_bidders WHERE auction_id = ? AND bidder_id = ?',
+      [auction_id, bidder_id]
+    );
+
+    if (inviteError || !invitations || invitations.length === 0) {
+      return res.status(403).json({
+        success: false,
+        error: 'You are not invited to this auction',
+        validation_error: 'NOT_INVITED'
+      });
+    }
+
+    // ✅ Insert bid
+    const bidTime = getCurrentSLTime();
+    const { data: bidResult, error: bidError } = await query(
+      'INSERT INTO bids (auction_id, bidder_id, amount, bid_time) VALUES (?, ?, ?, ?)',
+      [auction_id, bidder_id, bidAmount, bidTime.format('YYYY-MM-DD HH:mm:ss')]
+    );
+
+    if (bidError) {
+      console.error('❌ Bid insertion error:', bidError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to place bid',
+        validation_error: 'DATABASE_ERROR'
+      });
+    }
+
+    // ✅ Get inserted bid
+    const { data: newBids } = await query(
+      'SELECT * FROM bids WHERE auction_id = ? AND bidder_id = ? ORDER BY bid_time DESC LIMIT 1',
+      [auction_id, bidder_id]
+    );
+
+    const newBid = newBids[0];
+    const rank = await getBidderCurrentRank(auction_id, bidder_id);
+
+    const { data: lowestBids } = await query(
+      `SELECT b.amount 
+       FROM bids b
+       INNER JOIN (
+         SELECT bidder_id, MAX(bid_time) AS latest_time
+         FROM bids
+         WHERE auction_id = ?
+         GROUP BY bidder_id
+       ) lb ON b.bidder_id = lb.bidder_id 
+            AND b.bid_time = lb.latest_time
+       WHERE b.auction_id = ?
+       ORDER BY b.amount ASC 
+       LIMIT 1`,
+      [auction_id, auction_id]
+    );
+
+    const currencySymbol = auction.currency === 'LKR' ? '₨' : '$';
+
+    console.log('✅ Bid placed successfully:', {
+      bid_id: newBid.id,
+      amount: newBid.amount,
+      rank: rank,
+      current_lowest: lowestBids?.[0]?.amount
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Bid placed successfully! You are currently ranked #${rank}`,
+      bid: newBid,
+      rank: rank,
+      is_leading: rank === 1,
+      currentLowest: lowestBids?.[0]?.amount || bidAmount,
+      currency: auction.currency,
+      currency_symbol: currencySymbol,
+      bid_time_sl: bidTime.format('YYYY-MM-DD HH:mm:ss')
+    });
+  } catch (error) {
+    console.error('💥 Bid placement error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process bid',
+      validation_error: 'INTERNAL_ERROR'
+    });
+  }
 };
 
 // Helper function to get bidder's current rank

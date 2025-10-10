@@ -161,8 +161,8 @@ const createAuction = async (req, res) => {
       auction_date,
       start_time,
       duration_minutes,
-      ceiling_price,        // NEW FIELD
-      currency,             // NEW FIELD
+      ceiling_price,
+      currency,
       step_amount,
       special_notices,
       selected_bidders,
@@ -181,7 +181,7 @@ const createAuction = async (req, res) => {
       !category ||
       !sbu ||
       !created_by_name ||
-      !ceiling_price ||     // NEW VALIDATION
+      !ceiling_price ||
       !currency ||
       !step_amount
     ) {
@@ -192,7 +192,7 @@ const createAuction = async (req, res) => {
       });
     }
 
-      // Validate currency
+    // Validate currency
     if (!['LKR', 'USD'].includes(currency)) {
       return res.status(400).json({
         success: false,
@@ -208,7 +208,7 @@ const createAuction = async (req, res) => {
       });
     }
 
-    // Validate step amount - NEW VALIDATION
+    // Validate step amount
     if (isNaN(step_amount) || parseFloat(step_amount) <= 0) {
       return res.status(400).json({
         success: false,
@@ -216,7 +216,7 @@ const createAuction = async (req, res) => {
       });
     }
 
-     // Validate step amount is less than ceiling price - NEW VALIDATION
+    // Validate step amount is less than ceiling price
     if (parseFloat(step_amount) >= parseFloat(ceiling_price)) {
       return res.status(400).json({
         success: false,
@@ -311,8 +311,8 @@ const createAuction = async (req, res) => {
           auction_date,
           start_time,
           duration_minutes,
-          parseFloat(ceiling_price),  // NEW FIELD
-          currency,                    // NEW FIELD
+          parseFloat(ceiling_price),
+          currency,
           parseFloat(step_amount),
           special_notices || null,
           "pending",
@@ -367,6 +367,146 @@ const createAuction = async (req, res) => {
       "Auction created successfully and is pending approval:",
       result.data
     );
+
+    // Send email notification to approver
+    try {
+      const websiteUrl = process.env.WEBSITE_URL || 'http://23.101.29.218:5173';
+      const approvalUrl = `${websiteUrl}/auctions/pending`;
+      
+      // Format date and time for display
+      const baseDate = new Date(auction_date);
+      const [hours, minutes] = start_time.split(":").map(Number);
+      baseDate.setHours(hours, minutes, 0);
+
+      const day = baseDate.getDate();
+      const suffix = ((d) => {
+        if (d > 3 && d < 21) return "th";
+        switch (d % 10) {
+          case 1: return "st";
+          case 2: return "nd";
+          case 3: return "rd";
+          default: return "th";
+        }
+      })(day);
+
+      const formattedDate = `${day}${suffix} ${baseDate.toLocaleString("en-GB", {
+        month: "short",
+        year: "numeric",
+      })}`;
+
+      const formattedTime = baseDate
+        .toLocaleString("en-GB", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        })
+        .replace(":", ".");
+
+      const displayDateTime = `${formattedDate} @${formattedTime}`;
+      
+      const emailSubject = `🔔 New Auction Created - Approval Required: ${title}`;
+      const emailHTML = `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <h2 style="color: #333;">New Auction Created - Approval Required</h2>
+  
+  <p>A new auction has been created in the ProcuBid E-Auction System and requires your approval.</p>
+  
+  <div style="background-color: #fafaf8ff; padding: 20px; border-radius: 5px; border-left: 4px solid #c8c8c8ff; margin: 20px 0;">
+    <h3 style="margin-top: 0; color: #555;">📋 Auction Details:</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; font-weight: bold; width: 40%;">Auction ID:</td>
+        <td style="padding: 8px 0;">${auctionId}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; font-weight: bold;">Title:</td>
+        <td style="padding: 8px 0;">${title}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; font-weight: bold;">Category:</td>
+        <td style="padding: 8px 0;">${category}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; font-weight: bold;">SBU:</td>
+        <td style="padding: 8px 0;">${sbu}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; font-weight: bold;">Ceiling Price:</td>
+        <td style="padding: 8px 0;">${currency === 'LKR' ? '₨' : '$'} ${parseFloat(ceiling_price).toLocaleString()}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; font-weight: bold;">Step Amount:</td>
+        <td style="padding: 8px 0;">${currency === 'LKR' ? '₨' : '$'} ${parseFloat(step_amount).toLocaleString()}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; font-weight: bold;">Date & Time:</td>
+        <td style="padding: 8px 0;">${displayDateTime}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; font-weight: bold;">Duration:</td>
+        <td style="padding: 8px 0;">${duration_minutes} minutes</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; font-weight: bold;">Selected Bidders:</td>
+        <td style="padding: 8px 0;">${selected_bidders.length} bidder(s)</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; font-weight: bold;">Created By:</td>
+        <td style="padding: 8px 0;">${created_by_name}</td>
+      </tr>
+      ${special_notices ? `
+      <tr>
+        <td style="padding: 8px 0; font-weight: bold; vertical-align: top;">Special Notices:</td>
+        <td style="padding: 8px 0;">${special_notices}</td>
+      </tr>
+      ` : ''}
+    </table>
+  </div>
+  
+  <div style="background-color: #e8f6ff; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff; margin: 20px 0;">
+    <p style="margin: 0;"><strong>⚠️ Action Required:</strong></p>
+    <p style="margin: 10px 0 0 0;">Please review the auction details and approve or reject this auction. Once approved, bidders will be automatically notified.</p>
+  </div>
+  
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="${approvalUrl}" 
+       style="background-color: #007bff; color: white; padding: 12px 30px; 
+              text-decoration: none; border-radius: 5px; display: inline-block;
+              font-weight: bold;">
+      Review and Approve Auction
+    </a>
+  </div>
+  
+  <p style="color: #666; font-size: 14px;">
+    If the button doesn't work, copy and paste this link into your browser:<br>
+    <a href="${approvalUrl}" style="color: #007bff;">${approvalUrl}</a>
+  </p>
+  
+  <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+  
+  <p style="color: #999; font-size: 12px;">
+    This is an automated notification from the ProcuBid E-Auction System. Please do not reply to this email.
+  </p>
+</div>
+      `;
+
+      console.log("Attempting to send approval email to chathuni.n@anunine.com");
+      
+      const emailResult = await sendEmail(
+        'chathuni.n@anunine.com',
+        emailSubject,
+        emailHTML
+      );
+
+      if (emailResult.success) {
+        console.log("✓ Approval notification email sent successfully to chathuni.n@anunine.com");
+      } else {
+        console.error("✗ Failed to send approval email:", emailResult.error);
+      }
+    } catch (emailError) {
+      console.error("✗ Error in email sending process:", emailError);
+      // Don't fail the auction creation if email fails
+    }
 
     res.json({
       success: true,
@@ -864,8 +1004,8 @@ const emailPromises = bidders.map(async (bidder) => {
   <p><strong>🏢 SBU:</strong> ${auctionData.sbu}</p>
   <p><strong>📅 Date & Time:</strong> ${displayDateTime}</p>
   <p><strong>⏱️ Duration:</strong> ${auctionData.duration_minutes} minutes</p>
-  <p><strong>💰 Ceiling Price:</strong> ${auctionData.currency === 'LKR' ? '₨' : '$'}${parseFloat(auctionData.ceiling_price).toLocaleString()}</p>
-  <p><strong>📊 Step Amount:</strong> ${auctionData.currency === 'LKR' ? '₨' : '$'}${parseFloat(auctionData.step_amount).toLocaleString()}</p>
+  <p><strong>💰 Ceiling Price:</strong> ${auctionData.currency === 'LKR' ? '₨' : '$'} ${parseFloat(auctionData.ceiling_price).toLocaleString()}</p>
+  <p><strong>📊 Step Amount:</strong> ${auctionData.currency === 'LKR' ? '₨' : '$'} ${parseFloat(auctionData.step_amount).toLocaleString()}</p>
   ${
     auctionData.special_notices
       ? `<p><strong>📝 Special Notices:</strong> ${auctionData.special_notices}</p>`
