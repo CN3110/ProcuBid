@@ -141,6 +141,7 @@ const getAuctionStatus = (auction) => {
 };
 
 // Create auction function
+// Create auction function
 const createAuction = async (req, res) => {
   try {
     console.log("Create auction request received");
@@ -247,10 +248,10 @@ const createAuction = async (req, res) => {
       });
     }
 
-    // Validate selected bidders exist
+    // Validate selected bidders exist and fetch their details
     console.log("Validating selected bidders:", selected_bidders);
     const { data: validBidders, error: biddersValidationError } = await query(
-      `SELECT id FROM users WHERE id IN (${selected_bidders
+      `SELECT id, name, email, company FROM users WHERE id IN (${selected_bidders
         .map(() => "?")
         .join(",")}) AND role = 'bidder' AND is_active = TRUE`,
       selected_bidders
@@ -270,6 +271,8 @@ const createAuction = async (req, res) => {
         error: "One or more selected bidders are invalid or inactive",
       });
     }
+
+    console.log("Valid bidders found:", validBidders);
 
     // Generate auction ID
     const { data: lastAuction, error: lastAuctionError } = await query(
@@ -368,12 +371,29 @@ const createAuction = async (req, res) => {
       result.data
     );
 
-    // Send email notification to approver
+    // ===== EMAIL NOTIFICATION SECTION - START =====
+    console.log("\n========================================");
+    console.log("STARTING EMAIL NOTIFICATION PROCESS");
+    console.log("========================================");
+    
+    // Send email notification to approver - MOVED BEFORE RESPONSE
+    let emailSent = false;
+    let emailError = null;
+    
     try {
+      console.log("Step 1: Preparing email data...");
+      
       const websiteUrl = process.env.WEBSITE_URL || 'http://23.101.29.218:5173';
-      const approvalUrl = `${websiteUrl}/auctions/pending`;
+      const approvalUrl = `${websiteUrl}`;
+      
+      console.log("Website URL:", websiteUrl);
+      console.log("Approval URL:", approvalUrl);
       
       // Format date and time for display
+      console.log("Step 2: Formatting date and time...");
+      console.log("Auction Date:", auction_date);
+      console.log("Start Time:", start_time);
+      
       const baseDate = new Date(auction_date);
       const [hours, minutes] = start_time.split(":").map(Number);
       baseDate.setHours(hours, minutes, 0);
@@ -404,7 +424,42 @@ const createAuction = async (req, res) => {
 
       const displayDateTime = `${formattedDate} @${formattedTime}`;
       
-      const emailSubject = `🔔 New Auction Created - Approval Required: ${title}`;
+      console.log("Formatted DateTime:", displayDateTime);
+      
+      console.log("Step 3: Building bidder list for email...");
+      
+      // Generate HTML for invited bidders list
+      let biddersListHTML = '';
+      if (validBidders && validBidders.length > 0) {
+        biddersListHTML = `
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold; vertical-align: top;">Invited Bidders:</td>
+            <td style="padding: 8px 0;">
+              <div style="margin-bottom: 5px;">${validBidders.length} bidder(s) invited:</div>
+              <ul style="margin: 5px 0; padding-left: 20px;">
+                ${validBidders.map(bidder => `
+                  <li style="margin-bottom: 3px;">
+                    <strong>${bidder.name}</strong> 
+                    ${bidder.company ? `- ${bidder.company}` : ''}
+                    ${bidder.email ? `<br><small style="color: #666;">${bidder.email}</small>` : ''}
+                  </li>
+                `).join('')}
+              </ul>
+            </td>
+          </tr>
+        `;
+      } else {
+        biddersListHTML = `
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Invited Bidders:</td>
+            <td style="padding: 8px 0;">${selected_bidders.length} bidder(s) - Details not available</td>
+          </tr>
+        `;
+      }
+      
+      console.log("Step 4: Building email content...");
+      
+      const emailSubject = `New Auction Created - Approval Required: ${title}`;
       const emailHTML = `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
   <h2 style="color: #333;">New Auction Created - Approval Required</h2>
@@ -446,10 +501,7 @@ const createAuction = async (req, res) => {
         <td style="padding: 8px 0; font-weight: bold;">Duration:</td>
         <td style="padding: 8px 0;">${duration_minutes} minutes</td>
       </tr>
-      <tr>
-        <td style="padding: 8px 0; font-weight: bold;">Selected Bidders:</td>
-        <td style="padding: 8px 0;">${selected_bidders.length} bidder(s)</td>
-      </tr>
+      ${biddersListHTML}
       <tr>
         <td style="padding: 8px 0; font-weight: bold;">Created By:</td>
         <td style="padding: 8px 0;">${created_by_name}</td>
@@ -477,10 +529,7 @@ const createAuction = async (req, res) => {
     </a>
   </div>
   
-  <p style="color: #666; font-size: 14px;">
-    If the button doesn't work, copy and paste this link into your browser:<br>
-    <a href="${approvalUrl}" style="color: #007bff;">${approvalUrl}</a>
-  </p>
+  
   
   <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
   
@@ -490,23 +539,41 @@ const createAuction = async (req, res) => {
 </div>
       `;
 
-      console.log("Attempting to send approval email to chathuni.n@anunine.com");
+      console.log("Email Subject:", emailSubject);
+      console.log("Email HTML length:", emailHTML.length, "characters");
+      console.log("\nStep 5: Calling sendEmail function...");
+      console.log("Recipient: chathuni.n@anunine.com");
       
       const emailResult = await sendEmail(
-        'chathuni.n@anunine.com',
+        'chathuninimesha12@gmail.com',
         emailSubject,
         emailHTML
       );
 
+      console.log("\nStep 6: Email result received:");
+      console.log("Success:", emailResult.success);
+      
       if (emailResult.success) {
-        console.log("✓ Approval notification email sent successfully to chathuni.n@anunine.com");
+        console.log("✓✓✓ APPROVAL EMAIL SENT SUCCESSFULLY! ✓✓✓");
+        emailSent = true;
       } else {
-        console.error("✗ Failed to send approval email:", emailResult.error);
+        console.error("✗✗✗ APPROVAL EMAIL FAILED! ✗✗✗");
+        console.error("Error:", emailResult.error);
+        emailError = emailResult.error;
       }
-    } catch (emailError) {
-      console.error("✗ Error in email sending process:", emailError);
-      // Don't fail the auction creation if email fails
+    } catch (error) {
+      console.error("✗✗✗ EXCEPTION IN EMAIL PROCESS! ✗✗✗");
+      console.error("Error Type:", error.name);
+      console.error("Error Message:", error.message);
+      console.error("Error Stack:", error.stack);
+      emailError = error;
     }
+    
+    console.log("========================================");
+    console.log("EMAIL NOTIFICATION PROCESS COMPLETE");
+    console.log("Email Sent:", emailSent);
+    console.log("========================================\n");
+    // ===== EMAIL NOTIFICATION SECTION - END =====
 
     res.json({
       success: true,
@@ -514,6 +581,10 @@ const createAuction = async (req, res) => {
       auction_id: result.data.auction_id,
       message:
         "Auction created successfully and is pending approval. Bidders will be notified once approved.",
+      email_notification: {
+        sent: emailSent,
+        error: emailError ? emailError.message : null
+      }
     });
   } catch (error) {
     console.error("Create auction error:", error);

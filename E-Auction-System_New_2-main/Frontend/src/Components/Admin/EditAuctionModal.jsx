@@ -31,51 +31,60 @@ const EditAuctionModal = ({ auction, onClose, onSave }) => {
   const currencyOptions = ['LKR', 'USD'];
 
   // Initialize form data when auction prop changes - UPDATED
-  useEffect(() => {
-    if (auction) {
-      // Parse the date and time for the form inputs
-      const auctionDate = auction.auction_date || auction.DateTime?.split(' ')[0] || '';
-      const startTime = auction.start_time || auction.DateTime?.split(' ')[1] || '';
+ useEffect(() => {
+  if (auction) {
+    // Parse the date and time for the form inputs
+    const auctionDate = auction.auction_date || auction.DateTime?.split(' ')[0] || '';
+    const startTime = auction.start_time || auction.DateTime?.split(' ')[1] || '';
 
-      setFormData({
-        title: auction.title || auction.Title || '',
-        auction_date: auctionDate,
-        start_time: startTime,
-        duration_minutes: auction.duration_minutes || parseInt(auction.Duration) || '',
-        ceiling_price: auction.ceiling_price || '',           // NEW FIELD
-        currency: auction.currency || 'LKR',                  // NEW FIELD
-        step_amount: auction.step_amount || '',               // NEW FIELD
-        category: auction.category || '',
-        sbu: auction.sbu || '',
-        special_notices: auction.special_notices || '',
-        selected_bidders: auction.auction_bidders?.map(b => b.bidder_id) || []
-      });
-    }
-    
-    // Fetch available bidders
-    fetchBidders();
-  }, [auction]);
+    // Debug: Check what bidder data we're receiving
+    console.log('Auction bidder data:', auction.auction_bidders);
+    console.log('Available bidders:', availableBidders);
+
+    setFormData({
+      title: auction.title || auction.Title || '',
+      auction_date: auctionDate,
+      start_time: startTime,
+      duration_minutes: auction.duration_minutes || parseInt(auction.Duration) || '',
+      ceiling_price: auction.ceiling_price || '',
+      currency: auction.currency || 'LKR',
+      step_amount: auction.step_amount || '',
+      category: auction.category || '',
+      sbu: auction.sbu || '',
+      special_notices: auction.special_notices || '',
+      selected_bidders: auction.auction_bidders?.map(b => b.bidder_id) || auction.auction_bidders?.map(b => b.id) || []
+    });
+  }
+  
+  // Fetch available bidders
+  fetchBidders();
+}, [auction]);
 
   /**
    * Fetch all active bidders for selection
    */
   const fetchBidders = async () => {
-    try {
-      setLoading(true);
-      const response = await fetchActiveBidders();
-      
-      if (response.success) {
-        setAvailableBidders(response.bidders || []);
-      } else {
-        setError('Failed to fetch available bidders');
-      }
-    } catch (err) {
-      console.error('Error fetching bidders:', err);
+  try {
+    setLoading(true);
+    const response = await fetchActiveBidders();
+    
+    if (response.success) {
+      // Ensure bidders have consistent ID field
+      const normalizedBidders = response.bidders.map(bidder => ({
+        ...bidder,
+        id: bidder.id || bidder.bidder_id || bidder.user_id // Normalize ID field
+      }));
+      setAvailableBidders(normalizedBidders || []);
+    } else {
       setError('Failed to fetch available bidders');
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (err) {
+    console.error('Error fetching bidders:', err);
+    setError('Failed to fetch available bidders');
+  } finally {
+    setLoading(false);
+  }
+};
 
   /**
    * Handle form input changes
@@ -99,22 +108,34 @@ const EditAuctionModal = ({ auction, onClose, onSave }) => {
   /**
    * Handle bidder selection changes
    */
-  const handleBidderSelection = (bidderId) => {
-    setFormData(prev => ({
-      ...prev,
-      selected_bidders: prev.selected_bidders.includes(bidderId)
-        ? prev.selected_bidders.filter(id => id !== bidderId)
-        : [...prev.selected_bidders, bidderId]
-    }));
+  /**
+ * Handle bidder selection changes
+ */
+const handleBidderSelection = (bidderId) => {
+  setFormData(prev => ({
+    ...prev,
+    selected_bidders: prev.selected_bidders.includes(bidderId)
+      ? prev.selected_bidders.filter(id => id !== bidderId)
+      : [...prev.selected_bidders, bidderId]
+  }));
 
-    // Clear validation error for bidders
-    if (validationErrors.selected_bidders) {
-      setValidationErrors(prev => ({
-        ...prev,
-        selected_bidders: null
-      }));
-    }
-  };
+  // Clear validation error for bidders
+  if (validationErrors.selected_bidders) {
+    setValidationErrors(prev => ({
+      ...prev,
+      selected_bidders: null
+    }));
+  }
+};
+
+/**
+ * Check if a bidder is selected
+ */
+const isBidderSelected = (bidder) => {
+  // Try multiple possible ID fields
+  const bidderIdentifier = bidder.id || bidder.bidder_id || bidder.user_id;
+  return formData.selected_bidders.includes(bidderIdentifier);
+};
 
   /**
    * Validate form data - UPDATED with new field validations

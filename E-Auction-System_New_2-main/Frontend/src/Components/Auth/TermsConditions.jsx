@@ -7,12 +7,12 @@ const TermsAndConditions = () => {
 
   return (
     <div className="terms-container">
-      <h2>E-Auction System Terms and Conditions</h2>
+      <h2>ProcuBid - E-Auction System Terms and Conditions</h2>
       
       <div className="terms-content">
         <h3>1. Introduction</h3>
         <p>
-          Welcome to the Anunine Holdings Pvt Ltd E-Auction System. These Terms and Conditions govern your participation 
+          Welcome to the "ProcuBid", E-Auction System by Anunine Holdings Pvt Ltd. These Terms and Conditions govern your participation 
           in our reverse auction platform. By accessing or using our system, you agree to be bound by these terms.
         </p>
 
@@ -22,10 +22,12 @@ const TermsAndConditions = () => {
           goods or services. The auction process follows these steps:
         </p>
         <ul>
-          <li>Only account created by the admin, and invited bidders may participate in auctions</li>
-          <li>Bidders submit decreasing bids during the auction period</li>
+          <li>Only accounts created by the administrator, and invited bidders, may participate in auctions</li>
+          <li>Each auction has a <strong>ceiling price</strong> (maximum starting price) set by the administrator, which represents the highest acceptable bid value</li>
+          <li>A <strong>step amount</strong> (bid decrement) is configured for each auction to define the minimum amount by which each subsequent bid must decrease from the previous bid</li>
+          <li>Bidders submit decreasing bids during the auction period, adhering to the step amount requirements</li>
           <li>Real-time ranking is displayed but is not final</li>
-          <li>Admin reserves the right to disqualify any bidder for valid reasons</li>
+          <li>The administrator reserves the right to disqualify any bidder for valid reasons</li>
           <li>The bidder with the lowest qualified bid will be awarded the contract</li>
         </ul>
 
@@ -34,12 +36,12 @@ const TermsAndConditions = () => {
           As a bidder, you agree to:
         </p>
         <ul>
-          
-          <li>Maintain the confidentiality of your emailed login credentials</li>
-          <li>Submit bids in good faith with intention to honor if awarded</li>
-          <li>as the rankings update every 10 minutes, you have to make sure do not bidding when the rest of time is 10s.</li>
+          <li>Maintain the confidentiality of your login credentials provided via email</li>
+          <li>Submit bids in good faith with the intention to honor them if awarded</li>
+          <li>Ensure your bids comply with the ceiling price and step amount configured for the auction</li>
+          <li>Avoid bidding within the last 10 seconds of the auction, as rankings update every 10 minutes</li>
           <li>Comply with all applicable laws and regulations</li>
-          <li>after shortlisted you have to submit relavant documents, and then the adminstarion deside the final result.</li>
+          <li>Submit relevant documents if shortlisted, after which the administration will decide the final result</li>
           <li>Not engage in collusion or anti-competitive behavior</li>
         </ul>
 
@@ -48,19 +50,18 @@ const TermsAndConditions = () => {
           The auction administrator reserves the right to:
         </p>
         <ul>
-          <li>Disqualify any bidder for valid reasons including but not limited to:
-            <ul>
-              <li>Suspected collusion or price fixing</li>
-              <li>Technical non-compliance with specifications</li>
-              <li>Inability to meet delivery requirements</li>
-              <li>Submission of fraudulent documentation</li>
-              <li>Violation of these terms and conditions</li>
-            </ul>
-          </li>
+          <li>Set appropriate ceiling prices and step amounts for each auction</li>
+          <li>Disqualify any bidder for valid reasons and will provide the reason for disqualification</li>
           <li>Cancel an auction at any stage, even after completion</li>
-          <li>Make final determination of the winning bidder</li>
+          <li>Make the final determination of the winning bidder</li>
           <li>Modify auction parameters as necessary</li>
         </ul>
+        <p className="admin-note">
+          <strong>Important Note for Administrators:</strong> When configuring auctions, please ensure that the 
+          <strong> step amount is set to commonly used, convenient values</strong> for bidders, such as 
+          <strong> 0.01, 0.05, 0.025, 0.10</strong>, or similar increments. This facilitates easier calculation 
+          and bid submission for participants, improving the overall auction experience.
+        </p>
 
         <h3>5. Auction Cancellation</h3>
         <p>
@@ -70,10 +71,16 @@ const TermsAndConditions = () => {
         <ul>
           <li>Changes in business requirements</li>
           <li>Budgetary constraints</li>
-          <li>Technical errors in the auction process</li>
           <li>Suspected fraudulent activity</li>
           <li>Force majeure events</li>
         </ul>
+
+        <div className="important-note">
+          <p>
+            <strong>Note:</strong> The ceiling price and step amount are critical parameters that ensure fair 
+            competition and systematic bidding. All participants should review these values before submitting bids.
+          </p>
+        </div>
 
         <h3>6. Liability Limitations</h3>
         <p>
@@ -92,8 +99,6 @@ const TermsAndConditions = () => {
           These terms shall be governed by and construed in accordance with the laws of the jurisdiction where 
           Anunine Holdings Pvt Ltd is registered.
         </p>
-
-        
       </div>
     </div>
   );
