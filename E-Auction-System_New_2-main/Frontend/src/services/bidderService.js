@@ -1,8 +1,6 @@
 import axios from 'axios';
 
-//const API_URL = 'http://localhost:5000/api/admin'; // Adjust based on your backend URL
-const API_URL = 'http://23.101.29.218:5000/api/admin';
-//const API_URL = 'https://procubid.anunine.com/api/admin'
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const addBidder = async (bidderData) => {
   try {

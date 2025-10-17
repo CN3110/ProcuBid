@@ -3,7 +3,7 @@ import "../../styles/BidRecordsModal.css";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 
-const API_URL = 'http://23.101.29.218:5000/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 
 const BidRecordsModal = ({ auction, onClose }) => {

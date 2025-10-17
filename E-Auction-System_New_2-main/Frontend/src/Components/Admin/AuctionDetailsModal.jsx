@@ -7,9 +7,7 @@ import {
 import BidRecordsModal from "./BidRecordsModal";
 import "../../styles/AuctionDetailsModal.css";
 
-const API_URL = 'http://23.101.29.218:5000/api';
-//const API_URL = 'http://localhost:5000/api';
-//const API_URL = 'https://procubid.anunine.com/api'
+const API_URL = import.meta.env.VITE_API_URL;
 
 const AuctionDetailsModal = ({ auction, onClose, currentUser }) => {
   // State management

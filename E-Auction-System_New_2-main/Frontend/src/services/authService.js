@@ -1,9 +1,7 @@
 // Frontend/src/services/authService.js
 import axios from 'axios';
 
-//const API_URL = 'http://localhost:5000/api'; 
-const API_URL = 'http://23.101.29.218:5000/api';
-//const API_URL = 'https://procubid.anunine.com/api'
+const API_URL = import.meta.env.VITE_API_URL;
 
 // Configure axios instance for auth
 const authApi = axios.create({
@@ -37,7 +35,7 @@ authApi.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       // Redirect to login or refresh page
-      window.location.href = '/login';
+      window.location.href = '/';
     }
     
     throw new Error(message);

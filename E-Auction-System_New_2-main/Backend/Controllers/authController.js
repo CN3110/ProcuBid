@@ -5,14 +5,14 @@ const { query } = require('../Config/database');
 // Hardcoded admin and system admin credentials
 const ADMIN_CREDENTIALS = {
   user_id: 'ADMIN',
-  password: 'admin123', // This should be hashed in production
+  password: 'ProcuBid@Admin@2468@', // This should be hashed in production
   role: 'admin',
   name: 'Administrator'
 };
 
 const SYSADMIN_CREDENTIALS = {
   user_id: 'SYSADMIN',
-  password: 'sysadmin123', // This should be hashed in production
+  password: 'ProcuBid*SYS*1357*', // This should be hashed in production
   role: 'system_admin',
   name: 'System Administrator'
 };
